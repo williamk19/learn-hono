@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "./database/connection";
-import { users } from "./database/schema/schema";
+import { users } from "./database/schema";
 
 const app = new Hono();
 

@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { migrate } from 'drizzle-orm/libsql/migrator';
 import { db, client } from './connection';
 
-await migrate(db, { migrationsFolder: './drizzle' });
+await migrate(db, { migrationsFolder: './migrations' });
 
-await client.end();
+await client.close();

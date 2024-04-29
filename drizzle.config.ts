@@ -2,13 +2,11 @@ import 'dotenv/config';
 import type { Config } from 'drizzle-kit';
 
 export default {
-  schema: './src/database/schema/users.ts',
-  out: './drizzle',
-  driver: 'pg',
+  schema: './src/database/schema.ts',
+  out: './migrations',
+  driver: 'turso',
   dbCredentials: {
-    host: process.env.DB_HOST!,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME!,
+    url: process.env.TURSO_CONNECTION_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN!,
   },
-} satisfies Config
+} satisfies Config;
