@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm';
 import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
-  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username', { length: 16 }).notNull().unique(),
   password: text('password', { length: 64 }).notNull(),
   name: text('name'),
@@ -10,19 +10,20 @@ export const users = sqliteTable('users', {
 });
 
 export const usersRelation = relations(users, ({ many }) => ({
-  usersToRoles: many(usersToRoles),
+  roles: many(usersToRoles),
 }));
 
 export const roles = sqliteTable('roles', {
-  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name'),
 });
+
 export const groupsRelations = relations(roles, ({ many }) => ({
-  usersToRoles: many(usersToRoles),
+  users: many(usersToRoles),
 }));
 
 export const usersToRoles = sqliteTable('users_to_roles', {
-  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id')
     .notNull()
     .references(() => users.id),
