@@ -1,71 +1,15 @@
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
-import {
-  LoginRequest,
-  LoginResponse,
-  RegisterRequest,
-  RegisterResponse,
-} from './schema';
+import { LoginRequest, RegisterRequest } from './schema';
 import { db } from '../../database/connection';
 import { eq } from 'drizzle-orm';
 import { users, usersToRoles } from '../../database/schema';
 import { StatusCodes } from 'http-status-codes';
 import { sign } from 'hono/jwt';
+import { authLoginRoute, authRegisterRoute } from './docs';
 
 const auth = new OpenAPIHono();
-
-const authLoginRoute = createRoute({
-  summary: 'Login',
-  method: 'post',
-  path: '/login',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: LoginRequest,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Success login to application.',
-      content: {
-        'application/json': {
-          schema: LoginResponse,
-        },
-      },
-    },
-  },
-  tags: ['Auth'],
-});
-
-const authRegisterRoute = createRoute({
-  summary: 'Register New User',
-  method: 'post',
-  path: '/register',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: RegisterRequest,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      content: {
-        'application/json': {
-          schema: RegisterResponse,
-        },
-      },
-      description: 'Registration endpoint',
-    },
-  },
-  tags: ['Auth'],
-});
 
 auth.openapi(authLoginRoute, async (c) => {
   const body = await c.req.json<z.infer<typeof LoginRequest>>();
@@ -101,13 +45,18 @@ auth.openapi(authLoginRoute, async (c) => {
         'Unable to login, make sure your username and password are correct.',
     });
 
+  const now = Math.floor(Date.now() / 1000);
+
   const payload = {
+    iss: 'Prompt BE',
     sub: user.username,
     role: user.roles[0].role.name,
-    exp: process.env.JWT_EXP,
+    iat: now,
+    nbf: now,
+    exp: now + parseInt(process.env.JWT_EXP!),
   };
 
-  const token = await sign(payload, process.env.JWT_SECRET!);
+  const token = await sign(payload, process.env.JWT_SECRET!, 'HS512');
 
   return c.json({
     code: StatusCodes.OK,

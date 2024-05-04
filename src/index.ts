@@ -6,6 +6,8 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import auth from './routes/auth';
 import { HTTPException } from 'hono/http-exception';
 import { StatusCodes } from 'http-status-codes';
+import users from './routes/users';
+import { verify } from 'hono/jwt';
 
 const app = new OpenAPIHono();
 
@@ -21,6 +23,29 @@ app.get('/docs', swaggerUI({ url: '/openapi.json' }));
 
 app.route('/auth', auth);
 
+app.get('/', (c) => {
+  return c.text('OK');
+});
+
+app.use(
+  '/*',
+  bearerAuth({
+    verifyToken(token, c) {
+      return verify(token, process.env.JWT_SECRET!, 'HS512');
+    },
+  }),
+);
+
+app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
+  type: 'http',
+  name: 'Authorization',
+  scheme: 'bearer',
+  in: 'header',
+  description: 'Bearer token',
+});
+
+app.route('/users', users);
+
 app.onError(async (err, c) => {
   if (err instanceof HTTPException) {
     const { status, message } = err;
@@ -32,14 +57,12 @@ app.onError(async (err, c) => {
     });
   }
 
+  c.status(StatusCodes.INTERNAL_SERVER_ERROR);
+
   return c.json({
     code: StatusCodes.INTERNAL_SERVER_ERROR,
     message: `Something wrong on the backend`,
   });
-});
-
-app.get('/', (c) => {
-  return c.text('OK');
 });
 
 export default app;
