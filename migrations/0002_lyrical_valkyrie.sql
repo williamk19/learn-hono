@@ -1,0 +1,1 @@
+ALTER TABLE `users` RENAME COLUMN `deleted_at` TO `deleted_at`;

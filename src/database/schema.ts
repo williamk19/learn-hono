@@ -5,8 +5,9 @@ export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username', { length: 16 }).notNull().unique(),
   password: text('password', { length: 64 }).notNull(),
-  name: text('name'),
-  email: text('email'),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  deleted_at: text('deleted_at'),
 });
 
 export const usersRelation = relations(users, ({ many }) => ({
@@ -15,7 +16,8 @@ export const usersRelation = relations(users, ({ many }) => ({
 
 export const roles = sqliteTable('roles', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name'),
+  name: text('name').notNull(),
+  deleted_at: text('deleted_at'),
 });
 
 export const groupsRelations = relations(roles, ({ many }) => ({
@@ -30,6 +32,7 @@ export const usersToRoles = sqliteTable('users_to_roles', {
   roleId: integer('role_id')
     .notNull()
     .references(() => roles.id),
+  deleted_at: text('deleted_at'),
 });
 
 export const usersToGroupsRelations = relations(usersToRoles, ({ one }) => ({

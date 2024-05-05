@@ -3,8 +3,8 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { LoginRequest, RegisterRequest } from './schema';
 import { db } from '../../database/connection';
-import { eq } from 'drizzle-orm';
-import { users, usersToRoles } from '../../database/schema';
+import { asc, eq, isNull } from 'drizzle-orm';
+import { roles, users, usersToRoles } from '../../database/schema';
 import { StatusCodes } from 'http-status-codes';
 import { sign } from 'hono/jwt';
 import { authLoginRoute, authRegisterRoute } from './docs';
@@ -18,6 +18,8 @@ auth.openapi(authLoginRoute, async (c) => {
     where: eq(users.username, body.username),
     with: {
       roles: {
+        where: isNull(roles.deleted_at),
+        orderBy: [asc(roles.id)],
         columns: {
           userId: false,
           id: false,
@@ -58,13 +60,18 @@ auth.openapi(authLoginRoute, async (c) => {
 
   const token = await sign(payload, process.env.JWT_SECRET!, 'HS512');
 
+  const userRoles = user.roles.map((r) => ({
+    id: r.roleId,
+    name: r.role.name,
+  }));
+
   return c.json({
     code: StatusCodes.OK,
     status: 'success',
     data: {
       accessToken: token,
       username: user.username,
-      roles: user.roles,
+      roles: userRoles,
     },
   });
 });
@@ -90,7 +97,7 @@ auth.openapi(authRegisterRoute, async (c) => {
 
     await db
       .insert(usersToRoles)
-      .values({ userId: insertedNewUser[0].insertedId, roleId: 3 });
+      .values({ userId: insertedNewUser[0].insertedId, roleId: 1 });
 
     const newUser = await db.query.users.findFirst({
       columns: {
@@ -98,6 +105,7 @@ auth.openapi(authRegisterRoute, async (c) => {
       },
       with: {
         roles: {
+          orderBy: [asc(roles.id)],
           columns: {
             userId: false,
             id: false,
@@ -107,6 +115,7 @@ auth.openapi(authRegisterRoute, async (c) => {
               columns: { name: true },
             },
           },
+          where: isNull(roles.deleted_at),
         },
       },
       where: eq(users.id, insertedNewUser[0].insertedId),
@@ -117,10 +126,18 @@ auth.openapi(authRegisterRoute, async (c) => {
         message: 'Cannot find created user.',
       });
 
+    const createdUser = {
+      ...newUser,
+      roles: newUser.roles.map((r) => ({
+        id: r.roleId,
+        name: r.role.name,
+      })),
+    };
+
     return c.json({
       status: 'success',
       code: StatusCodes.CREATED,
-      data: newUser,
+      data: createdUser,
     });
   } catch (error) {
     throw new HTTPException(StatusCodes.BAD_REQUEST, {

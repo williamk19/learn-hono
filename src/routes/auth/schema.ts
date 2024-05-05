@@ -13,10 +13,8 @@ export const LoginResponse = z.object({
     username: z.string().max(16).min(4),
     roles: z.array(
       z.object({
-        roleId: z.number().nonnegative().gt(0),
-        role: z.object({
-          name: z.string().nullable(),
-        }),
+        id: z.number().nonnegative().gt(0),
+        name: z.string(),
       }),
     ),
   }),
@@ -25,8 +23,8 @@ export const LoginResponse = z.object({
 export const RegisterRequest = z.object({
   username: z.string().max(16).min(4),
   password: z.string().min(8).max(64),
-  name: z.string().min(4),
-  email: z.string().email(),
+  name: z.string(),
+  email: z.string(),
 });
 
 export const RegisterResponse = z.object({
@@ -34,14 +32,12 @@ export const RegisterResponse = z.object({
   data: z.object({
     id: z.number().nonnegative().gt(0),
     username: z.string().max(16).min(4),
-    name: z.string().min(4).nullable(),
-    email: z.string().email().nullable(),
+    name: z.string().min(4),
+    email: z.string().email(),
     roles: z.array(
       z.object({
-        roleId: z.number().nonnegative().gt(0),
-        role: z.object({
-          name: z.string().nullable(),
-        }),
+        id: z.number().nonnegative().gt(0),
+        name: z.string(),
       }),
     ),
   }),
