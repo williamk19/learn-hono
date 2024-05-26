@@ -97,7 +97,7 @@ auth.openapi(authRegisterRoute, async (c) => {
 
     await db
       .insert(usersToRoles)
-      .values({ userId: insertedNewUser[0].insertedId, roleId: 1 });
+      .values({ userId: insertedNewUser[0].insertedId, roleId: 3 });
 
     const newUser = await db.query.users.findFirst({
       columns: {

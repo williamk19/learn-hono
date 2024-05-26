@@ -3,12 +3,13 @@ import { bearerAuth } from 'hono/bearer-auth';
 import { swaggerUI } from '@hono/swagger-ui';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
-
-import auth from './routes/auth';
 import { HTTPException } from 'hono/http-exception';
 import { StatusCodes } from 'http-status-codes';
-import users from './routes/users';
 import { verify } from 'hono/jwt';
+
+import auth from './routes/auth';
+import users from './routes/users';
+import tasks from './routes/tasks';
 
 const app = new OpenAPIHono();
 
@@ -35,14 +36,25 @@ app.get('/', (c) => {
   return c.text('OK');
 });
 
-app.use(
-  '/*',
-  bearerAuth({
-    verifyToken(token, c) {
-      return verify(token, process.env.JWT_SECRET!, 'HS512');
+app.use('/*', async (c, next) => {
+  const bearer = bearerAuth({
+    async verifyToken(token, c) {
+      const tokenPayload = await verify(
+        token,
+        process.env.JWT_SECRET!,
+        'HS512',
+      );
+
+      c.set('jwtPayload', {
+        username: tokenPayload.sub,
+        role: tokenPayload.role,
+      });
+      return tokenPayload;
     },
-  }),
-);
+  });
+
+  return bearer(c, next);
+});
 
 app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
   type: 'http',
@@ -53,6 +65,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
 });
 
 app.route('/users', users);
+app.route('/tasks', tasks);
 
 app.onError(async (err, c) => {
   if (err instanceof HTTPException) {

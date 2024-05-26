@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  prompt-be:
+    restart: 'unless-stopped'
+    build: .
+    container_name: 'promp-be-app'
+    ports:
+      - '3005:3000'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 150M
+        reservations:
+          cpus: '0.3'
+          memory: 50M

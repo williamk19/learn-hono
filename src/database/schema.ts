@@ -12,6 +12,7 @@ export const users = sqliteTable('users', {
 
 export const usersRelation = relations(users, ({ many }) => ({
   roles: many(usersToRoles),
+  tasks: many(tasks),
 }));
 
 export const roles = sqliteTable('roles', {
@@ -46,7 +47,26 @@ export const usersToGroupsRelations = relations(usersToRoles, ({ one }) => ({
   }),
 }));
 
+export const tasks = sqliteTable('tasks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title', { length: 64 }).notNull(),
+  description: text('description'),
+  status: text('status', { enum: ['TODO', 'IN_PROGRESS', 'DONE'] }).notNull(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
+});
+
+export const tasksRelation = relations(tasks, ({ one }) => ({
+  user: one(users, {
+    fields: [tasks.userId],
+    references: [users.id],
+  }),
+}));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Role = typeof roles.$inferSelect;
 export type NewRole = typeof roles.$inferInsert;
+export type Task = typeof tasks.$inferSelect;
+export type NewTask = typeof tasks.$inferInsert;
