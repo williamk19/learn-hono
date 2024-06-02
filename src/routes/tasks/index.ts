@@ -1,10 +1,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { tasksListRoute } from './docs';
+import { taskDetailRoute, tasksListRoute } from './docs';
 import { db } from '../../database/connection';
 import { RoleEnum, TaskType } from '../../types/tasks.types';
 import { HTTPException } from 'hono/http-exception';
 import { StatusCodes } from 'http-status-codes';
-import { count, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { tasks } from '../../database/schema';
 
 const tasksApi = new OpenAPIHono();
@@ -46,7 +46,7 @@ tasksApi.openapi(tasksListRoute, async (c) => {
 
     if (!userId)
       throw new HTTPException(StatusCodes.NOT_FOUND, {
-        message: 'Cannot find updated user.',
+        message: `Cannot find user with username of ${user.username}`,
       });
 
     tasksList = await db.query.tasks.findMany({
@@ -80,6 +80,46 @@ tasksApi.openapi(tasksListRoute, async (c) => {
     code: StatusCodes.OK,
     status: 'success',
     data: tasksList,
+  });
+});
+
+tasksApi.openapi(taskDetailRoute, async (c) => {
+  const { id } = c.req.valid('param');
+  const user = c.get('jwtPayload');
+
+  const task = await db.query.tasks.findFirst({
+    where: (tasks, { eq }) => eq(tasks.id, parseInt(id)),
+    columns: {
+      userId: false,
+    },
+    with: {
+      user: {
+        columns: {
+          password: false,
+          deleted_at: false,
+        },
+      },
+    },
+  });
+
+  if (!task) {
+    throw new HTTPException(StatusCodes.NOT_FOUND, {
+      message: `Task with id ${id} not found.`,
+    });
+  }
+
+  if (user.role === RoleEnum.Employee) {
+    if (task?.user.username !== user.username) {
+      throw new HTTPException(StatusCodes.FORBIDDEN, {
+        message: `Can't view this task`,
+      });
+    }
+  }
+
+  return c.json({
+    code: StatusCodes.OK,
+    status: 'success',
+    data: task,
   });
 });
 

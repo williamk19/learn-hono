@@ -9,6 +9,9 @@ import { HTTPException } from 'hono/http-exception';
 const usersApi = new OpenAPIHono();
 
 usersApi.openapi(usersListRoute, async (c) => {
+  const user = c.get('jwtPayload');
+  console.log(user);
+
   const usersList = await db.query.users.findMany({
     columns: {
       password: false,
@@ -42,10 +45,15 @@ usersApi.openapi(usersListRoute, async (c) => {
     };
   });
 
+  const users = [
+    ...convertedUsersList.filter((u) => u.username === user.username),
+    ...convertedUsersList.filter((u) => u.username !== user.username),
+  ];
+
   return c.json({
     code: StatusCodes.OK,
     status: 'success',
-    data: convertedUsersList,
+    data: users,
   });
 });
 
